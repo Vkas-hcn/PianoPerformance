@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:id="@+id/guide"
+    android:background="@drawable/bg_guide"
+    android:fitsSystemWindows="true">
+
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:src="@drawable/icon_logo"
+            android:layout_marginBottom="16dp"
+            app:layout_constraintBottom_toTopOf="@+id/text_view_id"
+            app:layout_constraintStart_toStartOf="@+id/text_view_id" />
+        <androidx.appcompat.widget.AppCompatTextView
+            android:id="@+id/text_view_id"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="24dp"
+            android:gravity="center"
+            android:text="@string/app_name"
+            android:textColor="#FFFFFFFF"
+            android:textSize="20sp"
+            app:layout_constraintBottom_toTopOf="@+id/lin_one"
+            app:layout_constraintStart_toStartOf="@+id/lin_one" />
+
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/lin_one"
+            android:layout_width="184dp"
+            android:layout_height="8dp"
+            android:layout_marginHorizontal="36dp"
+            android:layout_marginBottom="68dp"
+            android:indeterminate="true"
+            android:progress="55"
+            app:indicatorColor="@color/white"
+            app:indicatorTrackGapSize="0dp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:trackColor="#61457A"
+            app:trackCornerRadius="8dp"
+            app:trackStopIndicatorSize="0dp"
+            app:trackThickness="8dp" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>
