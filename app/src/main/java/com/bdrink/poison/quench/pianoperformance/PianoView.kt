@@ -79,10 +79,10 @@ class PianoView @JvmOverloads constructor(
             strokeWidth = 2f
         }
 
-        private val whiteKeyWidth = 80*1.3f
-        private val whiteKeyHeight = 300*1.3f
-        private val blackKeyWidth = 50*1.3f
-        private val blackKeyHeight = 180*1.3f
+        private val whiteKeyWidth = 80*1.8f
+        private val whiteKeyHeight = 300*2.3f
+        private val blackKeyWidth = 50*1.8f
+        private val blackKeyHeight = 180*2.3f
 
         private val keys = mutableListOf<PianoKey>()
         private val pressedKeys = mutableSetOf<Int>()

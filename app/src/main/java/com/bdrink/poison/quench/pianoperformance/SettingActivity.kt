@@ -20,7 +20,7 @@ class SettingActivity : AppCompatActivity() {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        binding.back.setOnClickListener {
+        binding.llBack.setOnClickListener {
             finish()
         }
         binding.appCompatTextView.setOnClickListener {

@@ -222,15 +222,15 @@ class PianoHistoryActivity : AppCompatActivity() {
         }
 
         AlertDialog.Builder(this)
-            .setTitle("编辑文件名")
+            .setTitle("Edit the file name")
             .setView(editText)
-            .setPositiveButton("保存") { _, _ ->
+            .setPositiveButton("Save") { _, _ ->
                 val newName = editText.text.toString().trim()
                 if (newName.isNotEmpty() && newName != record.displayName) {
                     renameRecord(record, newName)
                 }
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
@@ -366,25 +366,25 @@ class PianoHistoryActivity : AppCompatActivity() {
 
     private fun showStoragePermissionRationaleDialog() {
         AlertDialog.Builder(this)
-            .setTitle("需要存储权限")
-            .setMessage("下载文件到手机需要存储权限，请授予权限以继续。")
-            .setPositiveButton("授权") { _, _ ->
+            .setTitle("Storage permissions are required")
+            .setMessage("Downloading files to your phone requires storage permissions, please grant permission to continue.")
+            .setPositiveButton("Authorization") { _, _ ->
                 storagePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
     private fun showStoragePermissionDeniedDialog() {
         AlertDialog.Builder(this)
-            .setTitle("权限被拒绝")
-            .setMessage("存储权限被拒绝，无法下载文件。您可以在设置中手动开启权限。")
-            .setPositiveButton("去设置") { _, _ ->
+            .setTitle("Permission denied")
+            .setMessage("Storage permissions are denied and the file cannot be downloaded. You can manually enable permissions in the settings.")
+            .setPositiveButton("Go to Settings") { _, _ ->
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                 intent.data = Uri.fromParts("package", packageName, null)
                 startActivity(intent)
             }
-            .setNegativeButton("取消", null)
+            .setNegativeButton("Cancel", null)
             .show()
     }
 

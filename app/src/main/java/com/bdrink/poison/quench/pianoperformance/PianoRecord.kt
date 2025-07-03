@@ -53,7 +53,7 @@ data class PianoRecord(
                 // 返回一个基本的记录，确保不会因为解析错误而丢失文件
                 return PianoRecord(
                     file = file,
-                    displayName = file.nameWithoutExtension.ifEmpty { "钢琴演奏" },
+                    displayName = file.nameWithoutExtension.ifEmpty { "Piano playing" },
                     recordTime = dateFormat.format(Date(file.lastModified())),
                     duration = estimateDuration(file),
                     fileSize = file.length()
@@ -101,15 +101,15 @@ data class PianoRecord(
                     if (matchResult != null) {
                         val dateStr = matchResult.groupValues[1]
                         val timeStr = matchResult.groupValues[2]
-                        "钢琴演奏 ${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)} ${timeStr.substring(0, 2)}:${timeStr.substring(2, 4)}"
+                        "Piano playing ${dateStr.substring(0, 4)}-${dateStr.substring(4, 6)}-${dateStr.substring(6, 8)} ${timeStr.substring(0, 2)}:${timeStr.substring(2, 4)}"
                     } else {
-                        "钢琴演奏"
+                        "Piano playing"
                     }
                 } else {
                     fileName
                 }
             } catch (e: Exception) {
-                "钢琴演奏"
+                "Piano playing"
             }
         }
 
