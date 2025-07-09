@@ -17,14 +17,22 @@ class PianoView @JvmOverloads constructor(
 
     private var keyClickListener: ((Int) -> Unit)? = null
     private var currentScale = 1.0f
-    private val minScale = 0.5f
-    private val maxScale = 2.0f
+    private val minScale = 0.6f
+    private val maxScale = 2.5f
 
     private val pianoCanvas = PianoCanvas(context)
+
+    // 滚动监听器，用于同步导航条
+    private var scrollChangeListener: ((Int, Int) -> Unit)? = null
 
     init {
         addView(pianoCanvas)
         isHorizontalScrollBarEnabled = false
+
+        // 设置滚动监听
+        viewTreeObserver.addOnScrollChangedListener {
+            scrollChangeListener?.invoke(scrollX, pianoCanvas.getTotalWidth())
+        }
     }
 
     fun setOnKeyClickListener(listener: (Int) -> Unit) {
@@ -32,24 +40,55 @@ class PianoView @JvmOverloads constructor(
         pianoCanvas.setOnKeyClickListener(listener)
     }
 
+    fun setOnScrollChangeListener(listener: (Int, Int) -> Unit) {
+        scrollChangeListener = listener
+    }
+
     fun zoomIn() {
         if (currentScale < maxScale) {
-            currentScale = min(maxScale, currentScale + 0.2f)
+            val oldScrollX = scrollX
+            val oldWidth = pianoCanvas.getTotalWidth()
+
+            currentScale = min(maxScale, currentScale + 0.3f)
             updateScale()
+
+            // 保持当前视图中心位置不变
+            post {
+                val newWidth = pianoCanvas.getTotalWidth()
+                val newScrollX = (oldScrollX.toFloat() * newWidth / oldWidth).toInt()
+                scrollTo(newScrollX, 0)
+            }
         }
     }
 
     fun zoomOut() {
         if (currentScale > minScale) {
-            currentScale = max(minScale, currentScale - 0.2f)
+            val oldScrollX = scrollX
+            val oldWidth = pianoCanvas.getTotalWidth()
+
+            currentScale = max(minScale, currentScale - 0.3f)
             updateScale()
+
+            // 保持当前视图中心位置不变
+            post {
+                val newWidth = pianoCanvas.getTotalWidth()
+                val newScrollX = (oldScrollX.toFloat() * newWidth / oldWidth).toInt()
+                scrollTo(newScrollX, 0)
+            }
         }
     }
 
     private fun updateScale() {
-        pianoCanvas.scaleX = currentScale
-        pianoCanvas.scaleY = currentScale
+        pianoCanvas.setScale(currentScale)
     }
+
+    fun scrollToPosition(targetScrollX: Int) {
+        smoothScrollTo(targetScrollX, 0)
+    }
+
+    fun getCurrentScrollX(): Int = scrollX
+    fun getTotalWidth(): Int = pianoCanvas.getTotalWidth()
+    fun getViewWidth(): Int = width
 
     private inner class PianoCanvas(context: Context) : View(context) {
 
@@ -79,10 +118,12 @@ class PianoView @JvmOverloads constructor(
             strokeWidth = 2f
         }
 
-        private val whiteKeyWidth = 80*1.8f
-        private val whiteKeyHeight = 300*2.3f
-        private val blackKeyWidth = 50*1.8f
-        private val blackKeyHeight = 180*2.3f
+        private val baseWhiteKeyWidth = 80*1.7f
+        private val baseWhiteKeyHeight = 300*1.9f
+        private val baseBlackKeyWidth = 50*1.7f
+        private val baseBlackKeyHeight = 180*1.9f
+
+        private var currentKeyScale = 1.0f
 
         private val keys = mutableListOf<PianoKey>()
         private val pressedKeys = mutableSetOf<Int>()
@@ -93,15 +134,26 @@ class PianoView @JvmOverloads constructor(
             setupKeys()
         }
 
+        fun setScale(scale: Float) {
+            currentKeyScale = scale
+            setupKeys()
+            requestLayout()
+            invalidate()
+        }
+
         private fun setupKeys() {
             keys.clear()
+
+            val whiteKeyWidth = baseWhiteKeyWidth * currentKeyScale
+            val whiteKeyHeight = baseWhiteKeyHeight
+            val blackKeyWidth = baseBlackKeyWidth * currentKeyScale
+            val blackKeyHeight = baseBlackKeyHeight
 
             // 88键钢琴：A0到C8
             val whiteKeyPattern = listOf(0, 2, 4, 5, 7, 9, 11) // C, D, E, F, G, A, B
             val blackKeyPattern = listOf(1, 3, 6, 8, 10) // C#, D#, F#, G#, A#
 
             var whiteKeyIndex = 0
-            var currentX = 0f
 
             // 从A0开始 (keyIndex = 0)
             for (keyIndex in 0 until 88) {
@@ -134,10 +186,16 @@ class PianoView @JvmOverloads constructor(
             }
         }
 
-        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        fun getTotalWidth(): Int {
             val whiteKeyCount = keys.count { !it.isBlack }
-            val totalWidth = (whiteKeyCount * whiteKeyWidth).toInt()
-            setMeasuredDimension(totalWidth, whiteKeyHeight.toInt())
+            val whiteKeyWidth = baseWhiteKeyWidth * currentKeyScale
+            return (whiteKeyCount * whiteKeyWidth).toInt()
+        }
+
+        override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+            val totalWidth = getTotalWidth()
+            val height = baseWhiteKeyHeight.toInt()
+            setMeasuredDimension(totalWidth, height)
         }
 
         override fun onDraw(canvas: Canvas) {

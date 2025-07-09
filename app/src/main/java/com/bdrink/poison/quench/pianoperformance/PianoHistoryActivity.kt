@@ -40,6 +40,7 @@ class PianoHistoryActivity : AppCompatActivity() {
 
     private lateinit var adapter: PianoHistoryAdapter
     private lateinit var pcmPlayer: PcmPlayerManager
+    private lateinit var customNameManager: PianoCustomNameManager
 
     private val records = mutableListOf<PianoRecord>()
     private var currentPlayingRecord: PianoRecord? = null
@@ -65,7 +66,7 @@ class PianoHistoryActivity : AppCompatActivity() {
         setContentView(R.layout.activity_piano_history)
 
         initViews()
-        initPlayer()
+        initManagers()
         setupRecyclerView()
         loadRecordHistory()
     }
@@ -80,8 +81,9 @@ class PianoHistoryActivity : AppCompatActivity() {
         }
     }
 
-    private fun initPlayer() {
+    private fun initManagers() {
         pcmPlayer = PcmPlayerManager()
+        customNameManager = PianoCustomNameManager(this)
 
         // 设置播放状态监听
         pcmPlayer.setOnPlayStateChangeListener { isPlaying, currentPosition, totalDuration ->
@@ -121,19 +123,15 @@ class PianoHistoryActivity : AppCompatActivity() {
             try {
                 val recordFiles = withContext(Dispatchers.IO) {
                     val recordDir = File(getExternalFilesDir(null), "piano_records")
-                    Log.d("PianoHistory", "录制目录路径: ${recordDir.absolutePath}")
-                    Log.d("PianoHistory", "目录是否存在: ${recordDir.exists()}")
 
                     if (!recordDir.exists()) {
                         val created = recordDir.mkdirs()
-                        Log.d("PianoHistory", "创建目录结果: $created")
                     }
 
                     val allFiles = recordDir.listFiles()
-                    Log.d("PianoHistory", "目录下所有文件数量: ${allFiles?.size ?: 0}")
 
                     allFiles?.forEach { file ->
-                        Log.d("PianoHistory", "文件: ${file.name}, 大小: ${file.length()}, 扩展名: ${file.extension}")
+                        Log.d("PianoHistory", "document: ${file.name}, si: ${file.length()}, Name: ${file.extension}")
                     }
 
                     val wavFiles = allFiles
@@ -141,32 +139,31 @@ class PianoHistoryActivity : AppCompatActivity() {
                         ?.sortedByDescending { it.lastModified() }
                         ?: emptyList()
 
-                    Log.d("PianoHistory", "符合条件的WAV文件数量: ${wavFiles.size}")
+
+                    val existingFilePaths = wavFiles.map { it.absolutePath }.toSet()
+                    customNameManager.cleanupNonExistentFiles(existingFilePaths)
+
                     wavFiles
                 }
 
-                val pianoRecords = recordFiles.map { PianoRecord.fromFile(it) }
-                Log.d("PianoHistory", "转换后的记录数量: ${pianoRecords.size}")
+                // 使用自定义名称管理器创建记录
+                val pianoRecords = recordFiles.map { PianoRecord.fromFile(it, customNameManager) }
 
                 // 清空Activity的records（仅用于计数）
                 records.clear()
                 records.addAll(pianoRecords)
-                Log.d("PianoHistory", "Activity records大小: ${records.size}")
 
                 // 更新适配器数据
                 adapter.updateRecords(pianoRecords)
-                Log.d("PianoHistory", "适配器更新后，记录数量: ${adapter.getAllRecords().size}")
 
                 // 显示/隐藏空状态 - 基于适配器中的实际数据
                 val adapterRecordCount = adapter.getAllRecords().size
                 if (adapterRecordCount == 0) {
                     recyclerView.visibility = View.GONE
                     layoutEmpty.visibility = View.VISIBLE
-                    Log.d("PianoHistory", "显示空状态")
                 } else {
                     recyclerView.visibility = View.VISIBLE
                     layoutEmpty.visibility = View.GONE
-                    Log.d("PianoHistory", "显示录制列表，共${adapterRecordCount}条记录")
                 }
 
             } catch (e: Exception) {
@@ -240,6 +237,9 @@ class PianoHistoryActivity : AppCompatActivity() {
     private fun renameRecord(record: PianoRecord, newName: String) {
         lifecycleScope.launch {
             try {
+                // 保存自定义名称到持久化存储
+                customNameManager.saveCustomName(record.file.absolutePath, newName)
+
                 // 通过适配器更新名称
                 val position = adapter.findPositionByFile(record.file)
                 if (position >= 0) {
@@ -390,8 +390,6 @@ class PianoHistoryActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // 每次返回页面时重新加载数据，确保显示最新的录制文件
-        Log.d("PianoHistory", "页面恢复，重新加载录制历史")
         loadRecordHistory()
     }
 

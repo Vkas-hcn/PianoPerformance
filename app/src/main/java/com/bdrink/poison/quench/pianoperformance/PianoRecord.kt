@@ -22,8 +22,10 @@ data class PianoRecord(
 
         /**
          * 从文件创建PianoRecord对象
+         * @param file 文件对象
+         * @param customNameManager 自定义名称管理器，可选
          */
-        fun fromFile(file: File): PianoRecord {
+        fun fromFile(file: File, customNameManager: PianoCustomNameManager? = null): PianoRecord {
             try {
                 Log.d("PianoRecord", "处理文件: ${file.name}, 路径: ${file.absolutePath}")
 
@@ -34,9 +36,10 @@ data class PianoRecord(
                 val recordTime = parseRecordTimeFromFileName(fileName)
                 Log.d("PianoRecord", "解析的录制时间: $recordTime")
 
-                // 生成显示名称（去掉前缀和时间戳）
-                val displayName = generateDisplayName(fileName)
-                Log.d("PianoRecord", "生成的显示名称: $displayName")
+                // 优先使用自定义名称，如果没有则生成默认显示名称
+                val displayName = customNameManager?.getCustomName(file.absolutePath)
+                    ?: generateDisplayName(fileName)
+                Log.d("PianoRecord", "最终显示名称: $displayName")
 
                 val duration = estimateDuration(file)
                 Log.d("PianoRecord", "估算时长: ${duration}ms")
@@ -51,9 +54,12 @@ data class PianoRecord(
             } catch (e: Exception) {
                 Log.e("PianoRecord", "创建PianoRecord失败", e)
                 // 返回一个基本的记录，确保不会因为解析错误而丢失文件
+                val fallbackDisplayName = customNameManager?.getCustomName(file.absolutePath)
+                    ?: file.nameWithoutExtension.ifEmpty { "Piano playing" }
+
                 return PianoRecord(
                     file = file,
-                    displayName = file.nameWithoutExtension.ifEmpty { "Piano playing" },
+                    displayName = fallbackDisplayName,
                     recordTime = dateFormat.format(Date(file.lastModified())),
                     duration = estimateDuration(file),
                     fileSize = file.length()

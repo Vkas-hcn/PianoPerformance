@@ -24,7 +24,7 @@ class SettingActivity : AppCompatActivity() {
             finish()
         }
         binding.appCompatTextView.setOnClickListener {
-            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://www.baidu.com"))
+            val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://sites.google.com/view/pianotouch/home"))
             startActivity(intent)
         }
     }

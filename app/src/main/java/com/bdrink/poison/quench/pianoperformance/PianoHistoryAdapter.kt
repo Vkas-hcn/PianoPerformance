@@ -62,8 +62,6 @@ class PianoHistoryAdapter(
                 btnPlayPause.setImageResource(R.drawable.ic_play)
             }
         }
-
-
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): HistoryViewHolder {
@@ -144,12 +142,15 @@ class PianoHistoryAdapter(
 
     /**
      * 更新项目名称
+     * 注意：这里只更新内存中的显示，实际的持久化存储在 Activity 中完成
      */
     fun updateItemName(position: Int, newName: String) {
         if (position >= 0 && position < records.size) {
             val record = records[position]
             records[position] = record.copy(displayName = newName)
             notifyItemChanged(position)
+
+            Log.d("PianoHistoryAdapter", "适配器中更新项目名称: 位置=$position, 新名称=$newName")
         }
     }
 

@@ -36,7 +36,7 @@ class PianoRecordManager(private val context: Context) {
     suspend fun startRecording(): String = withContext(Dispatchers.Main) {
         try {
             if (isRecording) {
-                throw RuntimeException("已经在录制中")
+                throw RuntimeException("Already in recording")
             }
 
             // 创建录制文件
@@ -51,13 +51,12 @@ class PianoRecordManager(private val context: Context) {
             // 获取最小缓冲区大小
             val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
             if (minBufferSize == AudioRecord.ERROR_BAD_VALUE || minBufferSize == AudioRecord.ERROR) {
-                throw RuntimeException("不支持的录音参数配置")
+                throw RuntimeException("Unsupported recording parameter configuration")
             }
 
             // 使用推荐缓冲区大小的2倍，确保录音稳定
             val bufferSize = minBufferSize * 2
 
-            Log.d(TAG, "初始化AudioRecord - 采样率: $sampleRate, 缓冲区大小: $bufferSize")
 
             // 初始化AudioRecord
             audioRecord = AudioRecord(
@@ -71,13 +70,13 @@ class PianoRecordManager(private val context: Context) {
             // 检查初始化状态
             when (audioRecord?.state) {
                 AudioRecord.STATE_INITIALIZED -> {
-                    Log.d(TAG, "AudioRecord初始化成功")
+                    Log.d(TAG, "AudioRecord initialization successfully")
                 }
                 AudioRecord.STATE_UNINITIALIZED -> {
-                    throw RuntimeException("AudioRecord初始化失败 - 状态未初始化")
+                    throw RuntimeException("AudioRecord initialization failed - state not initialized")
                 }
                 else -> {
-                    throw RuntimeException("AudioRecord初始化失败 - 未知状态: ${audioRecord?.state}")
+                    throw RuntimeException("AudioRecord initialization failed - unknown status: ${audioRecord?.state}")
                 }
             }
 
@@ -87,14 +86,11 @@ class PianoRecordManager(private val context: Context) {
             // 检查录制状态
             val recordingState = audioRecord?.recordingState
             if (recordingState != AudioRecord.RECORDSTATE_RECORDING) {
-                throw RuntimeException("无法开始录制 - 录制状态: $recordingState")
+                throw RuntimeException("Unable to start recording - Recording status: $recordingState")
             }
 
             isRecording = true
             totalAudioLength = 0L
-            Log.d(TAG, "开始录制到文件: ${recordingFile?.absolutePath}")
-
-            // 在后台协程中进行录制循环，不阻塞UI
             recordingJob = CoroutineScope(Dispatchers.IO).launch {
                 performRecording(bufferSize)
             }
@@ -102,15 +98,13 @@ class PianoRecordManager(private val context: Context) {
             recordingFile?.absolutePath ?: ""
 
         } catch (e: SecurityException) {
-            Log.e(TAG, "录制失败：没有录音权限", e)
-            throw RuntimeException("录制失败：没有录音权限，请检查权限设置")
+            throw RuntimeException("Recording failed: There is no recording permission, please check the permission settings")
         } catch (e: IllegalStateException) {
-            Log.e(TAG, "录制失败：AudioRecord状态异常", e)
-            throw RuntimeException("录制失败：录音设备状态异常，请重试")
+            Log.e(TAG, "Recording failed: AudioRecord status is abnormal", e)
+            throw RuntimeException("Recording failed: The recording device is abnormal, please try again")
         } catch (e: Exception) {
-            Log.e(TAG, "录制失败", e)
             cleanup()
-            throw RuntimeException("录制失败：${e.message}")
+            throw RuntimeException("Recording failed：${e.message}")
         }
     }
 
@@ -141,20 +135,18 @@ class PianoRecordManager(private val context: Context) {
                     outputStream.write(byteArray)
                     totalAudioLength += byteArray.size
                 } else if (samplesRead < 0) {
-                    Log.w(TAG, "录制出现错误，错误码: $samplesRead")
                     break
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "录制循环异常", e)
+            Log.e(TAG, "Recording loop abnormality", e)
         } finally {
             try {
                 outputStream?.flush()
                 outputStream?.close()
             } catch (e: Exception) {
-                Log.w(TAG, "关闭输出流异常", e)
+                Log.w(TAG, "Turn off output stream exception", e)
             }
-            Log.d(TAG, "录制循环结束")
         }
     }
 
@@ -163,10 +155,9 @@ class PianoRecordManager(private val context: Context) {
      */
     suspend fun stopRecording(): String = withContext(Dispatchers.Main) {
         try {
-            Log.d(TAG, "停止录制")
 
             if (!isRecording) {
-                throw RuntimeException("当前没有在录制")
+                throw RuntimeException("Not currently recording")
             }
 
             // 标记停止录制
@@ -182,17 +173,15 @@ class PianoRecordManager(private val context: Context) {
                     try {
                         if (record.recordingState == AudioRecord.RECORDSTATE_RECORDING) {
                             record.stop()
-                            Log.d(TAG, "AudioRecord已停止")
                         }
                     } catch (e: Exception) {
-                        Log.w(TAG, "停止录制时出现异常", e)
+                        Log.w(TAG, "An exception occurred while stopping recording", e)
                     }
 
                     try {
                         record.release()
-                        Log.d(TAG, "AudioRecord已释放")
                     } catch (e: Exception) {
-                        Log.w(TAG, "释放AudioRecord时出现异常", e)
+                        Log.w(TAG, "An exception occurred when releasing AudioRecord", e)
                     }
                 }
                 audioRecord = null
@@ -207,20 +196,10 @@ class PianoRecordManager(private val context: Context) {
 
             val filePath = recordingFile?.absolutePath ?: ""
 
-            // 检查文件是否成功创建且有内容
-            recordingFile?.let { file ->
-                if (file.exists() && file.length() > 44) { // WAV文件头44字节
-                    Log.d(TAG, "WAV录制文件创建成功，大小: ${file.length()} 字节")
-                } else {
-                    Log.w(TAG, "WAV录制文件为空或不存在")
-                }
-            }
-
             filePath
         } catch (e: Exception) {
-            Log.e(TAG, "停止录制失败", e)
             cleanup()
-            throw RuntimeException("停止录制失败：${e.message}")
+            throw RuntimeException("Stop recording failed：${e.message}")
         }
     }
 
@@ -330,9 +309,8 @@ class PianoRecordManager(private val context: Context) {
             randomAccessFile.writeByte(((audioLength shr 24) and 0xff).toInt())
 
             randomAccessFile.close()
-            Log.d(TAG, "WAV文件头更新完成，音频数据长度: $audioLength 字节")
         } catch (e: Exception) {
-            Log.e(TAG, "更新WAV文件头失败", e)
+            Log.e(TAG, "Failed to update WAV file header", e)
         }
     }
 
@@ -356,18 +334,18 @@ class PianoRecordManager(private val context: Context) {
                         record.stop()
                     }
                 } catch (e: Exception) {
-                    Log.w(TAG, "清理时停止录制异常", e)
+                    Log.w(TAG, "Stop recording exceptions during cleaning", e)
                 }
 
                 try {
                     record.release()
                 } catch (e: Exception) {
-                    Log.w(TAG, "清理时释放AudioRecord异常", e)
+                    Log.w(TAG, "Release AudioRecord exception during cleaning", e)
                 }
             }
             audioRecord = null
         } catch (e: Exception) {
-            Log.e(TAG, "清理资源失败", e)
+            Log.e(TAG, "Failed to clean up resources", e)
         }
     }
 
@@ -376,7 +354,6 @@ class PianoRecordManager(private val context: Context) {
      */
     fun release() {
         cleanup()
-        Log.d(TAG, "PianoRecordManager已释放")
     }
 
     /**
@@ -389,13 +366,5 @@ class PianoRecordManager(private val context: Context) {
         } catch (e: Exception) {
             false
         }
-    }
-
-    /**
-     * 获取推荐的缓冲区大小
-     */
-    fun getRecommendedBufferSize(): Int {
-        val minBufferSize = AudioRecord.getMinBufferSize(sampleRate, channelConfig, audioFormat)
-        return if (minBufferSize > 0) minBufferSize * 2 else 8192
     }
 }

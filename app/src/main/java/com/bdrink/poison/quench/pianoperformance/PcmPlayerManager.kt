@@ -8,9 +8,7 @@ import kotlinx.coroutines.*
 import java.io.File
 import java.io.FileInputStream
 
-/**
- * WAV音频播放管理器
- */
+
 class PcmPlayerManager {
 
     private var audioTrack: AudioTrack? = null
@@ -32,24 +30,15 @@ class PcmPlayerManager {
         private const val WAV_HEADER_SIZE = 44 // WAV文件头大小
     }
 
-    /**
-     * 设置播放状态变化监听器
-     * @param listener (isPlaying, currentPosition, totalDuration) -> Unit
-     */
+
     fun setOnPlayStateChangeListener(listener: (Boolean, Long, Long) -> Unit) {
         onPlayStateChangeListener = listener
     }
 
-    /**
-     * 设置播放完成监听器
-     */
     fun setOnPlayCompleteListener(listener: () -> Unit) {
         onPlayCompleteListener = listener
     }
 
-    /**
-     * 播放WAV文件
-     */
     suspend fun play(file: File) = withContext(Dispatchers.IO) {
         try {
             if (isPlaying) {
@@ -57,17 +46,17 @@ class PcmPlayerManager {
             }
 
             if (!file.exists() || file.length() <= WAV_HEADER_SIZE) {
-                throw RuntimeException("文件不存在或格式不正确")
+                throw RuntimeException("The file does not exist or is incorrect in format")
             }
 
             // 验证WAV文件格式
             if (!isValidWavFile(file)) {
-                throw RuntimeException("不是有效的WAV文件")
+                throw RuntimeException("Not a valid WAV file")
             }
 
             val bufferSize = AudioTrack.getMinBufferSize(sampleRate, channelConfig, audioFormat)
             if (bufferSize == AudioTrack.ERROR_BAD_VALUE || bufferSize == AudioTrack.ERROR) {
-                throw RuntimeException("不支持的音频参数")
+                throw RuntimeException("Unsupported audio parameters")
             }
 
             audioTrack = AudioTrack(
@@ -80,7 +69,7 @@ class PcmPlayerManager {
             )
 
             if (audioTrack?.state != AudioTrack.STATE_INITIALIZED) {
-                throw RuntimeException("AudioTrack初始化失败")
+                throw RuntimeException("AudioTrack initialization failed")
             }
 
             audioTrack?.play()
@@ -100,12 +89,12 @@ class PcmPlayerManager {
                 playWavFile(file, totalDuration)
             }
 
-            Log.d(TAG, "开始播放WAV文件: ${file.name}")
+            Log.d(TAG, "Start playing WAV files: ${file.name}")
 
         } catch (e: Exception) {
-            Log.e(TAG, "播放失败", e)
+            Log.e(TAG, "Play failed", e)
             cleanup()
-            throw RuntimeException("播放失败: ${e.message}")
+            throw RuntimeException("Play failed: ${e.message}")
         }
     }
 
@@ -128,48 +117,40 @@ class PcmPlayerManager {
                 false
             }
         } catch (e: Exception) {
-            Log.e(TAG, "验证WAV文件失败", e)
+            Log.e(TAG, "Verification of WAV file failed", e)
             false
         }
     }
 
-    /**
-     * 暂停播放
-     */
     fun pause() {
         try {
             if (isPlaying && !isPaused) {
                 audioTrack?.pause()
                 isPaused = true
-                Log.d(TAG, "播放已暂停")
 
                 onPlayStateChangeListener?.invoke(false, currentPosition, 0L)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "暂停播放失败", e)
+            Log.e(TAG, "Pause playback failed", e)
         }
     }
 
-    /**
-     * 恢复播放
-     */
+
     fun resume() {
         try {
             if (isPlaying && isPaused) {
                 audioTrack?.play()
                 isPaused = false
-                Log.d(TAG, "播放已恢复")
+                Log.d(TAG, "Playback has been restored")
 
                 onPlayStateChangeListener?.invoke(true, currentPosition, 0L)
             }
         } catch (e: Exception) {
-            Log.e(TAG, "恢复播放失败", e)
+            Log.e(TAG, "Resuming playback failed", e)
         }
     }
 
-    /**
-     * 停止播放
-     */
+
     fun stop() {
         try {
             isPlaying = false
@@ -183,7 +164,7 @@ class PcmPlayerManager {
                         track.stop()
                     }
                 } catch (e: Exception) {
-                    Log.w(TAG, "停止播放时异常", e)
+                    Log.w(TAG, "Exception when stopping playback", e)
                 }
             }
 
@@ -191,26 +172,19 @@ class PcmPlayerManager {
             currentPosition = 0L
 
             onPlayStateChangeListener?.invoke(false, currentPosition, 0L)
-            Log.d(TAG, "播放已停止")
 
         } catch (e: Exception) {
-            Log.e(TAG, "停止播放失败", e)
+            Log.e(TAG, "Stop playback failed", e)
         }
     }
 
-    /**
-     * 获取当前播放状态
-     */
+
     fun isPlaying(): Boolean = isPlaying && !isPaused
 
-    /**
-     * 获取当前播放位置
-     */
+
     fun getCurrentPosition(): Long = currentPosition
 
-    /**
-     * 播放WAV文件的具体实现
-     */
+
     private suspend fun playWavFile(file: File, totalDuration: Long) = withContext(Dispatchers.IO) {
         var inputStream: FileInputStream? = null
         try {
@@ -259,7 +233,6 @@ class PcmPlayerManager {
             }
 
         } catch (e: Exception) {
-            Log.e(TAG, "播放WAV文件时出错", e)
             withContext(Dispatchers.Main) {
                 stop()
             }
@@ -267,14 +240,12 @@ class PcmPlayerManager {
             try {
                 inputStream?.close()
             } catch (e: Exception) {
-                Log.w(TAG, "关闭文件流时异常", e)
+                Log.w(TAG, "Exception when closing file stream", e)
             }
         }
     }
 
-    /**
-     * 估算WAV文件播放时长
-     */
+
     private fun estimateWavFileDuration(file: File): Long {
         return try {
             // WAV文件总大小减去文件头大小
@@ -296,7 +267,7 @@ class PcmPlayerManager {
             audioTrack?.release()
             audioTrack = null
         } catch (e: Exception) {
-            Log.w(TAG, "清理AudioTrack时异常", e)
+            Log.w(TAG, "Exception when cleaning AudioTrack", e)
         }
     }
 
@@ -308,6 +279,5 @@ class PcmPlayerManager {
         cleanup()
         onPlayStateChangeListener = null
         onPlayCompleteListener = null
-        Log.d(TAG, "PcmPlayerManager已释放")
     }
 }

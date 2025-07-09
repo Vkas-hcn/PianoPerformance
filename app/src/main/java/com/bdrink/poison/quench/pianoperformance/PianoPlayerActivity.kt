@@ -25,6 +25,7 @@ class PianoPlayerActivity : AppCompatActivity() {
     private lateinit var btnZoomIn: ImageButton
     private lateinit var btnZoomOut: ImageButton
     private lateinit var pianoView: PianoView
+    private lateinit var pianoNavigation: PianoNavigationView
 
     private lateinit var audioManager: PianoAudioManager
     private lateinit var recordManager: PianoRecordManager
@@ -57,6 +58,7 @@ class PianoPlayerActivity : AppCompatActivity() {
         initViews()
         initManagers()
         setupListeners()
+        setupNavigation()
     }
 
     private fun initViews() {
@@ -66,6 +68,7 @@ class PianoPlayerActivity : AppCompatActivity() {
         btnZoomIn = findViewById(R.id.btn_zoom_in)
         btnZoomOut = findViewById(R.id.btn_zoom_out)
         pianoView = findViewById(R.id.piano_view)
+        pianoNavigation = findViewById(R.id.piano_navigation)
     }
 
     private fun initManagers() {
@@ -106,6 +109,31 @@ class PianoPlayerActivity : AppCompatActivity() {
 
         btnZoomOut.setOnClickListener {
             pianoView.zoomOut()
+        }
+    }
+
+    private fun setupNavigation() {
+        // 设置钢琴视图滚动监听
+        pianoView.setOnScrollChangeListener { scrollX, totalWidth ->
+            val viewWidth = pianoView.getViewWidth()
+            pianoNavigation.updateMask(scrollX, totalWidth, viewWidth)
+        }
+
+        // 设置导航控件点击监听
+        pianoNavigation.setOnPositionChangeListener { ratio ->
+            val totalWidth = pianoView.getTotalWidth()
+            val viewWidth = pianoView.getViewWidth()
+            val maxScrollX = totalWidth - viewWidth
+            val targetScrollX = (ratio * maxScrollX).toInt()
+            pianoView.scrollToPosition(targetScrollX.coerceAtLeast(0))
+        }
+
+        // 初始化蒙版位置
+        pianoView.post {
+            val scrollX = pianoView.getCurrentScrollX()
+            val totalWidth = pianoView.getTotalWidth()
+            val viewWidth = pianoView.getViewWidth()
+            pianoNavigation.updateMask(scrollX, totalWidth, viewWidth)
         }
     }
 
